@@ -20,7 +20,7 @@ import yaml
 
 
 class Token(object):
-    def __init__(self, url, auth):
+    def __init__(self, url, username, password):
         self.project_id = None
         self.auth_file = None
         self.type = 'gce'
