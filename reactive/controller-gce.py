@@ -36,5 +36,5 @@ def install():
 @hook('stop')
 def remove_controller():
     api_dir = requests.get('http://localhost:5000').json()['message']['api_dir']
-    remove('{}/api/controller_gce.py'.format(api_dir))
+    remove('{}/controllers/controller_gce.py'.format(api_dir))
     service_restart('sojobo-api')
