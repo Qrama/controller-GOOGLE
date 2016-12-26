@@ -21,23 +21,9 @@ import yaml
 
 class Token(object):
     def __init__(self, url, username, password):
-        self.project_id = None
-        self.auth_file = None
         self.type = 'gce'
         self.supportlxd = True
         self.url = url
-
-    def get_credentials(self):
-        return {'auth-type': 'access-key', 'project-id': self.project_id, 'auth-file': self.auth_file}
-
-    def get_cloud(self):
-        return {'type': 'gce', 'auth-types': ['access-key'], 'endpoint': self.url}
-
-
-def get_credentials(auth):
-    with open('/home/ubuntu/.local/share/juju/credentials.yaml', 'r') as cred:
-        credentials = yaml.load(cred)['credentials']['gce'][auth.username]
-    return credentials['access-key'], credentials['secret-key']
 
 
 def create_controller(name, region, credentials):
