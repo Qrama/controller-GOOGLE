@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # pylint: disable=c0111,c0301,c0325, r0903,w0406
-
+import os
 from subprocess import check_output, check_call
 import yaml
 
@@ -40,9 +40,8 @@ def get_credentials(auth):
     return credentials['access-key'], credentials['secret-key']
 
 
-def create_controller(name, region, credentials, cfile):
-    path = create_credentials_file(region, credentials)
-    check_call(['juju', 'add-credential', 'gce', '-f', path])
+def create_controller(name, region, credentials):
+    check_call(['juju', 'add-credential', 'google', '-f', create_credentials_file(credentials)])
     output = check_output(['juju', 'bootstrap', 'gce/{}'.format(region), name])
     return output
 
@@ -51,13 +50,10 @@ def get_supported_series():
     return ['precise', 'trusty', 'xenial', 'yakkety']
 
 
-def create_credentials_file(region, credentials):
+def create_credentials_file(filepath):
     path = '/tmp/credentials.yaml'
-    data = {'gce': {'default-credential': 'admin',
-                    'default-region': region,
-                    'admin': {'auth-type': 'access-key',
-                              'access-key': credentials['access_key'],
-                              'secret-key': credentials['secret_key']}}}
+    data = {'credentials': {'google': {os.environ.get('JUJU_ADMIN_USER'): {'auth-type': 'jsonfile',
+                                                                           'file': filepath}}}}
     with open(path, 'w') as dest:
         yaml.dump(data, dest, default_flow_style=True)
     return path

@@ -13,11 +13,11 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# pylint: disable=c0111,c0301,c0325, r0903,w0406
+# pylint: disable=c0111,c0301,c0325,r0903,w0406,c0103
 
 from os import remove
-import requests
 from shutil import copyfile
+import requests
 
 from charms.reactive import when_not, hook, set_state
 from charmhelpers.core.hookenv import status_set, charm_dir
