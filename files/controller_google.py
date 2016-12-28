@@ -21,14 +21,14 @@ import yaml
 
 class Token(object):
     def __init__(self, url, username, password):
-        self.type = 'gce'
+        self.type = 'google'
         self.supportlxd = True
         self.url = url
 
 
 def create_controller(name, region, credentials):
     check_call(['juju', 'add-credential', 'google', '-f', create_credentials_file(credentials)])
-    output = check_output(['juju', 'bootstrap', 'gce/{}'.format(region), name])
+    output = check_output(['juju', 'bootstrap', 'google/{}'.format(region), name])
     return output
 
 
