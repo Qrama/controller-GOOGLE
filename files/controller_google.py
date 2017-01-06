@@ -22,7 +22,7 @@ import yaml
 class Token(object):
     def __init__(self, url, username, password):
         self.type = 'google'
-        self.supportlxd = True
+        self.supportlxd = False
         self.url = url
 
 
