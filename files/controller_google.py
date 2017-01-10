@@ -27,7 +27,7 @@ class Token(object):
 
 
 def create_controller(name, region, credentials):
-    check_call(['juju', 'add-credential', 'google', '-f', create_credentials_file(credentials)])
+    check_call(['juju', 'add-credential', 'google', '-f', create_credentials_file(name, credentials)])
     output = check_output(['juju', 'bootstrap', 'google/{}'.format(region), name])
     return output
 
@@ -36,10 +36,10 @@ def get_supported_series():
     return ['precise', 'trusty', 'xenial', 'yakkety']
 
 
-def create_credentials_file(filepath):
+def create_credentials_file(name, filepath):
     path = '/tmp/credentials.yaml'
-    data = {'credentials': {'google': {os.environ.get('JUJU_ADMIN_USER'): {'auth-type': 'jsonfile',
-                                                                           'file': filepath}}}}
+    data = {'credentials': {'google': {name: {'auth-type': 'jsonfile',
+                                              'file': filepath}}}}
     with open(path, 'w') as dest:
         yaml.dump(data, dest, default_flow_style=True)
     return path
