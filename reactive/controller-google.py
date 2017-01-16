@@ -26,7 +26,7 @@ from charmhelpers.core.host import service_restart
 
 @when_not('controller-google.installed')
 def install():
-    api_dir = requests.get('http://localhost:5000').json()['message']['api_dir']
+    api_dir = requests.get('http://localhost:5000').json()['api_dir']
     copyfile('{}/files/controller_google.py'.format(charm_dir()), '{}/controllers/controller_google.py'.format(api_dir))
     service_restart('sojobo-api')
     status_set('active', 'data copied')
@@ -35,6 +35,6 @@ def install():
 
 @hook('stop')
 def remove_controller():
-    api_dir = requests.get('http://localhost:5000').json()['message']['api_dir']
+    api_dir = requests.get('http://localhost:5000').json()['api_dir']
     remove('{}/controllers/controller_google.py'.format(api_dir))
     service_restart('sojobo-api')
