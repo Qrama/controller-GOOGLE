@@ -1,0 +1,12 @@
+"name": "controller-google"
+"summary": "Enables the use of google-clouds in the Sojobo-api"
+"maintainer": "Mathijs Moerman <mathijs.moerman@qrama.io>"
+"description": |
+  This subordenate charm copies the necessairy files to enable the use of google-type clouds and restarts the api.
+"tags": ["misc"]
+"requires":
+  "sojobo-api":
+    "interface": "juju-info"
+    "scope": "container"
+"series": ["xenial"]
+"subordinate": !!bool "true"

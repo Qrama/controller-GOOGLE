@@ -1,0 +1,10 @@
+"options":
+  "controller-google": {}
+  "basic":
+    "use_venv": !!bool "false"
+    "packages": []
+    "include_system_packages": !!bool "false"
+"includes":
+- "layer:basic"
+"repo": "git@github.com:Qrama/controller-gce.git"
+"is": "controller-google"
