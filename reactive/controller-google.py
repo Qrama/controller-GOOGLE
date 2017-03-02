@@ -34,7 +34,7 @@ def install(sojobo):
     set_state('controller-google.installed')
 
 
-@when('sojobo.removed')
+@when('sojobo.removed', 'controller-google.installed')
 def remove_controller(sojobo):
     api_dir = list(sojobo.connection())[0]['api-dir']
     remove('{}/controllers/controller_google.py'.format(api_dir))
