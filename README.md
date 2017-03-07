@@ -9,7 +9,7 @@ To disable AWS-clouds, just remove the application.
 **Warning: Removing this will prevent the use of existing GCE-clouds!**
 
 # Bugs
-Report bugs on <a href="https://github.com/Qrama/controller-GCE/issues">Github</a>
+Report bugs on <a href="https://github.com/tengu-team/layer-controller-maas/issues">Github</a>
 
 # Author
 Mathijs Moerman <a href="mailto:mathijs.moerman@qrama.io">mathijs.moerman@qrama.io</a>
