@@ -14,9 +14,17 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # pylint: disable=c0111,c0301,c0325, r0903,w0406
+import os
 from subprocess import check_output, check_call
+from sojobo_api.api import w_errors as errors, w_juju as juju
+from flask import abort
 import yaml
+import json
+from juju.client.connection import JujuData
 
+CRED_KEYS = ['type', 'project_id', 'private_key_id', 'private_key', 'client_email',
+             'client_id', 'auth_uri', 'token_uri', 'auth_provider_x509_cert_url',
+             'client_x509_cert_url']
 
 class Token(object):
     def __init__(self, url, username, password):
@@ -26,8 +34,8 @@ class Token(object):
 
 
 def create_controller(name, region, credentials):
-    check_call(['juju', 'add-credential', 'google', '-f', create_credentials_file(name, credentials)])
-    output = check_output(['juju', 'bootstrap', 'google/{}'.format(region), name])
+    check_call(['juju', 'add-credential', 'google', '-f', create_credentials_file(name, credentials), '--replace'])
+    output = check_output(['juju', 'bootstrap', 'google/{}'.format(region), name, '--credential', name])
     return output
 
 
@@ -35,10 +43,30 @@ def get_supported_series():
     return ['precise', 'trusty', 'xenial', 'yakkety']
 
 
-def create_credentials_file(name, filepath):
+def create_credentials_file(name, credentials):
+    if len(CRED_KEYS) == len(list(credentials.keys())):
+        for cred in CRED_KEYS:
+            if not cred in list(credentials.keys()):
+                error = errors.key_does_not_exist(cred)
+                abort(error[0], error[1])
+    cred_path = '/home/{}/credentials'.format(juju.get_api_user())
+    if not os.path.exists(cred_path):
+        os.mkdir(cred_path)
+    filepath = '{}/google-{}.json'.format(cred_path, name)
+    with open(filepath, 'w+') as credfile:
+        json.dump(credentials, credfile)
     path = '/tmp/credentials.yaml'
     data = {'credentials': {'google': {name: {'auth-type': 'jsonfile',
                                               'file': filepath}}}}
     with open(path, 'w') as dest:
         yaml.dump(data, dest, default_flow_style=True)
     return path
+
+def get_public_url(c_name):
+    jujudata = JujuData()
+    result = jujudata.controllers()
+    return result[c_name]['api-endpoints'][0]
+
+
+def get_gui_url(controller, model):
+    return 'https://{}/gui/{}'.format(controller.public_ip, model.m_uuid)
