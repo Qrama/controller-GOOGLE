@@ -35,7 +35,7 @@ class Token(object):
 
 def create_controller(name, region, credentials):
     check_call(['juju', 'add-credential', 'google', '-f', create_credentials_file(name, credentials), '--replace'])
-    output = check_output(['juju', 'bootstrap', 'google/{}'.format(region), name, '--credential', name])
+    output = check_output(['juju', 'bootstrap', '--agent-version=2.1.2', 'google/{}'.format(region), name, '--credential', name])
     return output
 
 
