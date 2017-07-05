@@ -62,6 +62,18 @@ def create_credentials_file(name, credentials):
         yaml.dump(data, dest, default_flow_style=True)
     return path
 
+def generate_cred_file(name, credentials):
+    if len(CRED_KEYS) == len(list(credentials.keys())):
+        for cred in CRED_KEYS:
+            if not cred in list(credentials.keys()):
+                error = errors.key_does_not_exist(cred)
+                abort(error[0], error[1])
+    result = {}
+    result['type'] = 'jsonfile'
+    result['name'] = name
+    result['key'] = {'file': credentials}
+    return result
+
 def get_public_url(c_name):
     jujudata = JujuData()
     result = jujudata.controllers()
