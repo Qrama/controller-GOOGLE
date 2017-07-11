@@ -71,7 +71,7 @@ def generate_cred_file(name, credentials):
     result = {}
     result['type'] = 'jsonfile'
     result['name'] = name
-    result['key'] = {'file': credentials}
+    result['key'] = {'file': str(json.dumps(credentials))}
     return result
 
 def get_public_url(c_name):
