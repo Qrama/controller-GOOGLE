@@ -16,15 +16,18 @@
 # pylint: disable=c0111,c0301,c0325, r0903,w0406
 import os
 from subprocess import check_output, check_call
-from sojobo_api.api import w_errors as errors, w_juju as juju
+from sojobo_api import settings
+from sojobo_api.api import w_errors as errors
 from flask import abort
 import yaml
 import json
 from juju.client.connection import JujuData
 
+
 CRED_KEYS = ['type', 'project_id', 'private_key_id', 'private_key', 'client_email',
              'client_id', 'auth_uri', 'token_uri', 'auth_provider_x509_cert_url',
              'client_x509_cert_url']
+
 
 class Token(object):
     def __init__(self, url, username, password):
@@ -49,7 +52,7 @@ def create_credentials_file(name, credentials):
             if not cred in list(credentials.keys()):
                 error = errors.key_does_not_exist(cred)
                 abort(error[0], error[1])
-    cred_path = '/home/{}/credentials'.format(juju.get_api_user())
+    cred_path = '/home/{}/credentials'.format(settings.SOJOBO_USER)
     if not os.path.exists(cred_path):
         os.mkdir(cred_path)
     filepath = '{}/google-{}.json'.format(cred_path, name)
@@ -62,17 +65,20 @@ def create_credentials_file(name, credentials):
         yaml.dump(data, dest, default_flow_style=True)
     return path
 
+
 def generate_cred_file(name, credentials):
     if len(CRED_KEYS) == len(list(credentials.keys())):
         for cred in CRED_KEYS:
             if not cred in list(credentials.keys()):
                 error = errors.key_does_not_exist(cred)
                 abort(error[0], error[1])
-    result = {}
-    result['type'] = 'jsonfile'
-    result['name'] = name
-    result['key'] = {'file': str(json.dumps(credentials))}
+    result = {
+        'type': 'jsonfile',
+        'name': name,
+        'key': {'file': str(json.dumps(credentials))}
+    }
     return result
+
 
 def get_public_url(c_name):
     jujudata = JujuData()
