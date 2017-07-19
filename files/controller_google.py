@@ -80,11 +80,15 @@ def generate_cred_file(name, credentials):
     return result
 
 
+# Currently not being used, but already provided if we encounter a cloud which requires some
+# specific logic to return this data
 def get_public_url(c_name):
     jujudata = JujuData()
     result = jujudata.controllers()
     return result[c_name]['api-endpoints'][0]
 
 
+# Currently not being used, but already provided if we encounter a cloud which requires some
+# specific logic to return this data
 def get_gui_url(controller, model):
     return 'https://{}/gui/{}'.format(controller.public_ip, model.m_uuid)
