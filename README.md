@@ -14,5 +14,5 @@ To disable GCE-clouds, just remove the application
 Report bugs on <a href="https://github.com/tengu-team/layer-controller-google/issues">Github</a>
 
 # Authors
-Mathijs Moerman <mathijs.moerman@tengu.io>
-Sébastien Pattyn <sebastien.pattyn@tengu.io
+- Mathijs Moerman <mathijs.moerman@tengu.io>
+- Sébastien Pattyn <sebastien.pattyn@tengu.io
