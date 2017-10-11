@@ -36,15 +36,17 @@ class Token(object):
         self.url = url
 
 
-def create_controller(name, region, credentials):
-    check_call(['juju', 'add-credential', 'google', '-f', create_credentials_file(name, credentials), '--replace'])
-    output = check_output(['juju', 'bootstrap', '--agent-version=2.2.2', 'google/{}'.format(region), name, '--credential', name])
+def create_controller(name, region, credentials, cred_name):
+    check_call(['juju', 'add-credential', 'google', '-f', create_credentials_file(cred_name, credentials), '--replace'])
+    output = check_output(['juju', 'bootstrap', '--agent-version=2.2.2', 'google/{}'.format(region), name, '--credential', cred_name])
     return output
 
 
 def get_supported_series():
     return ['precise', 'trusty', 'xenial', 'yakkety']
 
+def get_supported_regions():
+    return ['us-east1', 'us-central1', 'us-west1', 'europe-west1', 'asia-east1', 'asia-northeast1', 'asia-southeast1']
 
 def create_credentials_file(name, credentials):
     if len(CRED_KEYS) == len(list(credentials.keys())):
@@ -78,17 +80,3 @@ def generate_cred_file(name, credentials):
         'key': {'file': str(json.dumps(credentials))}
     }
     return result
-
-
-# Currently not being used, but already provided if we encounter a cloud which requires some
-# specific logic to return this data
-def get_public_url(c_name):
-    jujudata = JujuData()
-    result = jujudata.controllers()
-    return result[c_name]['api-endpoints'][0]
-
-
-# Currently not being used, but already provided if we encounter a cloud which requires some
-# specific logic to return this data
-def get_gui_url(controller, model):
-    return 'https://{}/gui/{}'.format(controller.public_ip, model.m_uuid)
