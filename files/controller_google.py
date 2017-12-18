@@ -39,7 +39,7 @@ class Token(object):
 def create_controller(name, region, credentials, cred_name):
     cred_path = create_credentials_file(cred_name, credentials)
     check_call(['juju', 'add-credential', 'google', '-f', cred_path, '--replace'])
-    output = check_output(['juju', 'bootstrap', '--agent-version=2.2.2', 'google/{}'.format(region), name, '--credential', cred_name])
+    output = check_output(['juju', 'bootstrap', '--agent-version=2.3.0', 'google/{}'.format(region), name, '--credential', cred_name])
     os.remove(cred_path)
     return output
 
