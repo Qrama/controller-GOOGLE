@@ -15,13 +15,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # pylint: disable=c0111,c0301,c0325, r0903,w0406,e0401
 import os
-from subprocess import check_output, check_call
+from subprocess import check_output, check_call, Popen
 from sojobo_api import settings
-from sojobo_api.api import w_errors as errors
+from sojobo_api.api import w_errors as errors, w_datastore as datastore, w_juju as juju
 from flask import abort
 import yaml
 import json
-from juju.client.connection import JujuData
 
 
 CRED_KEYS = ['type', 'project_id', 'private_key_id', 'private_key', 'client_email',
@@ -30,22 +29,18 @@ CRED_KEYS = ['type', 'project_id', 'private_key_id', 'private_key', 'client_emai
 
 
 class Token(object):
-    def __init__(self, url, username, password):
+    def __init__(self, url):
         self.type = 'google'
         self.supportlxd = False
         self.url = url
 
-
-def create_controller(name, region, credentials, cred_name):
-    cred_path = create_credentials_file(cred_name, credentials)
-    check_call(['juju', 'add-credential', 'google', '-f', cred_path, '--replace'])
-    output = check_output(['juju', 'bootstrap', '--agent-version=2.3.0', 'google/{}'.format(region), name, '--credential', cred_name])
-    os.remove(cred_path)
-    return output
-
+def create_controller(name, data):
+    Popen(["python3", "{}/scripts/bootstrap_google_controller.py".format(settings.SOJOBO_API_DIR),
+           'google', name, data['region'], data['credentials']])
+    return 202, 'Environment {} is being created in region {}'.format(name, data['region'])
 
 def get_supported_series():
-    return ['precise', 'trusty', 'xenial', 'yakkety']
+    return ['trusty', 'xenial', 'yakkety']
 
 def get_supported_regions():
     return ['us-east1', 'us-central1', 'us-west1', 'europe-west1', 'asia-east1', 'asia-northeast1', 'asia-southeast1']
@@ -83,3 +78,9 @@ def generate_cred_file(name, credentials):
         'key': {'file': str(json.dumps(credentials))}
     }
     return result
+
+
+def add_credential(user, data):
+    Popen(["python3", "{}/scripts/add_google_credential.py".format(settings.SOJOBO_API_DIR),
+           user, str(data), settings.SOJOBO_API_DIR])
+    return 202, 'Credentials are being added for user {}'.format(user)
