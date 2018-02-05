@@ -19,10 +19,11 @@ import logging
 import os
 import hashlib
 from pathlib import Path
-from subprocess import check_output
+from subprocess import check_output, check_call
 import traceback
 import sys
 import yaml
+import json
 from juju import tag
 from juju.client import client
 sys.path.append('/opt')
@@ -37,19 +38,33 @@ class JuJu_Token(object):  #pylint: disable=R0903
         self.is_admin = True
 
 
-async def bootstrap_google_controller(name, region, cred_name):
+async def bootstrap_google_controller(name, region, cred_name):#pylint: disable=E0001
     try:
-        cred_path = create_credentials_file(cred_name, credentials)
-        check_call(['juju', 'add-credential', 'google', '-f', cred_path, '--replace'])
-        output = check_output(['juju', 'bootstrap', '--agent-version=2.3.0', 'google/{}'.format(region), name, '--credential', cred_name])
-        os.remove(cred_path)
-
-        juju.get_controller_types()['google'].bootstrap_controller(name, region, credential['credential'], 't{}'.format(hashlib.md5(cred_name.encode('utf')).hexdigest()))
-        pswd = token.password
+        token = JuJu_Token()
+        valid_cred_name = 't{}'.format(hashlib.md5(cred_name.encode('utf')).hexdigest())
+        credential = juju.get_credential(token.username, cred_name)
+        juju.get_controller_types()['google'].check_valid_credentials(credential)
+        cred_path = '/home/{}/credentials'.format(settings.SOJOBO_USER)
+        if not os.path.exists(cred_path):
+            os.mkdir(cred_path)
+        filepath = '{}/google-{}.json'.format(cred_path, valid_cred_name)
+        with open(filepath, 'w+') as credfile:
+            json.dump(credential['credential'], credfile)
+        path = '/tmp/credentials.yaml'
+        data = {'credentials': {'google': {valid_cred_name: {'auth-type': 'jsonfile',
+                                                  'file': filepath}}}}
+        with open(path, 'w') as dest:
+            yaml.dump(data, dest, default_flow_style=True)
+        logger.info(valid_cred_name)
+        logger.info(data)
+        check_call(['juju', 'add-credential', 'google', '-f', path, '--replace'])
+        logger.info(path)
+        check_call(['juju', 'bootstrap', '--agent-version=2.3.0', 'google/{}'.format(region), name, '--credential', valid_cred_name])
+        os.remove(path)
 
         logger.info('Setting admin password')
         check_output(['juju', 'change-user-password', 'admin', '-c', name],
-                     input=bytes('{}\n{}\n'.format(pswd, pswd), 'utf-8'))
+                     input=bytes('{}\n{}\n'.format(token.password, token.password), 'utf-8'))
 
         logger.info('Updating controller in database')
         with open(os.path.join(str(Path.home()), '.local', 'share', 'juju', 'controllers.yaml'), 'r') as data:
@@ -97,5 +112,5 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.set_debug(False)
     loop.run_until_complete(bootstrap_google_controller(sys.argv[1], sys.argv[2],
-                                              sys.argv[3], sys.argv[4]))
+                                              sys.argv[3]))
     loop.close()

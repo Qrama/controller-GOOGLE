@@ -36,7 +36,7 @@ class Token(object):
 
 def create_controller(name, data):
     Popen(["python3", "{}/scripts/bootstrap_google_controller.py".format(settings.SOJOBO_API_DIR),
-           'google', name, data['region'], data['credentials']])
+           name, data['region'], data['credential']])
     return 202, 'Environment {} is being created in region {}'.format(name, data['region'])
 
 def get_supported_series():
@@ -44,21 +44,6 @@ def get_supported_series():
 
 def get_supported_regions():
     return ['us-east1', 'us-central1', 'us-west1', 'europe-west1', 'asia-east1', 'asia-northeast1', 'asia-southeast1']
-
-def create_credentials_file(name, credential):
-    check_valid_credentials(credential)
-    cred_path = '/home/{}/credentials'.format(settings.SOJOBO_USER)
-    if not os.path.exists(cred_path):
-        os.mkdir(cred_path)
-    filepath = '{}/google-{}.json'.format(cred_path, name)
-    with open(filepath, 'w+') as credfile:
-        json.dump(credential, credfile)
-    path = '/tmp/credentials.yaml'
-    data = {'credentials': {'google': {name: {'auth-type': 'jsonfile',
-                                              'file': filepath}}}}
-    with open(path, 'w') as dest:
-        yaml.dump(data, dest, default_flow_style=True)
-    return path
 
 
 def check_valid_credentials(credentials):
@@ -78,7 +63,6 @@ def generate_cred_file(name, credentials):
         'key': {'file': str(json.dumps(credentials))}
     }
     return result
-
 
 def add_credential(user, data):
     Popen(["python3", "{}/scripts/add_google_credential.py".format(settings.SOJOBO_API_DIR),
