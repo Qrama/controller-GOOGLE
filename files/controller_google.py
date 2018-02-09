@@ -65,6 +65,8 @@ def generate_cred_file(name, credentials):
     return result
 
 def add_credential(user, data):
+    check_valid_credentials(data['credential'])
+    datastore.add_credential(user, data)
     Popen(["python3", "{}/scripts/add_google_credential.py".format(settings.SOJOBO_API_DIR),
            user, str(data), settings.SOJOBO_API_DIR])
     return 202, 'Credentials are being added for user {}'.format(user)

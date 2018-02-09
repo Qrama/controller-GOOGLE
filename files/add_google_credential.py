@@ -46,7 +46,7 @@ async def add_credential(username, credentials):
                     logger.info('%s -> Adding credentials', con)
                     await juju.update_cloud(con_juju, cred['name'], username)
                     logger.info('%s -> controller updated', con)
-        ds.add_credential(username, cred)
+        ds.set_credential_ready(username, cred['name'])
         logger.info('Succesfully added credential')
     except Exception as e:
         exc_type, exc_value, exc_traceback = sys.exc_info()
