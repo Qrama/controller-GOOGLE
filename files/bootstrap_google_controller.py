@@ -43,6 +43,8 @@ async def bootstrap_google_controller(name, region, cred_name):#pylint: disable=
         token = JuJu_Token()
         valid_cred_name = 't{}'.format(hashlib.md5(cred_name.encode('utf')).hexdigest())
         credential = juju.get_credential(token.username, cred_name)
+        if not credential['state'] == 'ready':
+            raise Exception('The Credential {} is not ready yet.'.format(credential['name']))
         juju.get_controller_types()['google'].check_valid_credentials(credential)
         cred_path = '/home/{}/credentials'.format(settings.SOJOBO_USER)
         if not os.path.exists(cred_path):
