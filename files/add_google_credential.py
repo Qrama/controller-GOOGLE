@@ -58,8 +58,8 @@ async def add_credential(username, credentials):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     ws_logger = logging.getLogger('websockets.protocol')
-    logger = logging.getLogger('add_credential')
-    hdlr = logging.FileHandler('{}/log/add_credential.log'.format(sys.argv[3]))
+    logger = logging.getLogger('add_google_credential')
+    hdlr = logging.FileHandler('{}/log/add_google_credential.log'.format(sys.argv[3]))
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
     hdlr.setFormatter(formatter)
     ws_logger.addHandler(hdlr)
