@@ -42,7 +42,6 @@ async def add_credential(username, credentials):
         for con in controllers:
             controller = Controller()
             await controller.connect(con['api-endpoints'][0], token.username, token.password, con['ca-cert'])
-            await controller.connect(token)
             logger.info('%s -> Adding credentials', con['name'])
             await juju.update_cloud(controller, cred['name'], username)
             logger.info('%s -> controller updated', con['name'])
