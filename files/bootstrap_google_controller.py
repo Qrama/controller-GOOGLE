@@ -84,14 +84,13 @@ async def bootstrap_google_controller(name, region, cred_name):#pylint: disable=
         for cred in credentials:
             if cred['name'] != cred_name:
                 await juju.update_cloud(controler, cred['name'], token.username)
-            models = await controller.get_models()
-            for model in models.serialize()['user-models']:
-                model = model.serialize()['model'].serialize()
-                # TODO: Checken of model al bestaat?
-                new_model = datastore.create_model(model['name'], state='Model is being deployed', uuid='')
-                datastore.add_model_to_controller(name, new_model["_key"])
-                datastore.set_model_state(new_model["_key"], 'ready', credential=cred_name, uuid=model['uuid'])
-                datastore.set_model_access(new_model["_key"], token.username, 'admin')
+        controller_facade = client.ControllerFacade.from_connection(controller.connection)
+        models = await controller_facade.AllModels()
+        for model in models.user_models:
+            new_model = datastore.create_model(model.model.name, state='Model is being deployed', uuid='')
+            datastore.add_model_to_controller(model.model.name, new_model["_key"])
+            datastore.set_model_state(new_model["_key"], 'ready', credential=cred_name, uuid=model.model.uuid)
+            datastore.set_model_access(new_model["_key"], token.username, 'admin')
         await controller.disconnect()
         logger.info('Controller succesfully created!')
     except Exception:  #pylint: disable=W0703
