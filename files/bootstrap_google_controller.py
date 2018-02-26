@@ -25,6 +25,7 @@ import sys
 import yaml
 import json
 from juju import tag
+from juju.controller import Controller
 from juju.client import client
 sys.path.append('/opt')
 from sojobo_api import settings  #pylint: disable=C0413
@@ -35,7 +36,6 @@ class JuJu_Token(object):  #pylint: disable=R0903
     def __init__(self):
         self.username = settings.JUJU_ADMIN_USER
         self.password = settings.JUJU_ADMIN_PASSWORD
-        self.is_admin = True
 
 
 async def bootstrap_google_controller(name, region, cred_name):#pylint: disable=E0001
@@ -57,10 +57,7 @@ async def bootstrap_google_controller(name, region, cred_name):#pylint: disable=
                                                   'file': filepath}}}}
         with open(path, 'w') as dest:
             yaml.dump(data, dest, default_flow_style=True)
-        logger.info(valid_cred_name)
-        logger.info(data)
         check_call(['juju', 'add-credential', 'google', '-f', path, '--replace'])
-        logger.info(path)
         check_call(['juju', 'bootstrap', '--agent-version=2.3.0', 'google/{}'.format(region), name, '--credential', valid_cred_name])
         os.remove(path)
 
@@ -79,15 +76,15 @@ async def bootstrap_google_controller(name, region, cred_name):#pylint: disable=
             con_data['controllers'][name]['ca-cert'])
 
         logger.info('Connecting to controller')
-        controller = juju.Controller_Connection(token, name)
+        controller = Controller()
 
         logger.info('Adding existing credentials and default models to database')
         credentials = datastore.get_credentials(token.username)
-        async with controller.connect(token) as juju_con:
-            for cred in credentials:
-                if cred['name'] != cred_name:
-                    await juju.update_cloud(juju_con, cred['name'], token.username)
-            models = await juju_con.get_models()
+        await controller.connect(con_data['controllers'][name]['api-endpoints'][0], token.username, token.password, con_data['controllers'][name]['ca-cert'])
+        for cred in credentials:
+            if cred['name'] != cred_name:
+                await juju.update_cloud(controler, cred['name'], token.username)
+            models = await controller.get_models()
             for model in models.serialize()['user-models']:
                 model = model.serialize()['model'].serialize()
                 # TODO: Checken of model al bestaat?
@@ -95,6 +92,7 @@ async def bootstrap_google_controller(name, region, cred_name):#pylint: disable=
                 datastore.add_model_to_controller(name, new_model["_key"])
                 datastore.set_model_state(new_model["_key"], 'ready', credential=cred_name, uuid=model['uuid'])
                 datastore.set_model_access(new_model["_key"], token.username, 'admin')
+        await controller.disconnect()
         logger.info('Controller succesfully created!')
     except Exception:  #pylint: disable=W0703
         exc_type, exc_value, exc_traceback = sys.exc_info()
