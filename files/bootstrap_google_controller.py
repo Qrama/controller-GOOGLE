@@ -65,6 +65,7 @@ async def bootstrap_google_controller(name, region, cred_name):#pylint: disable=
         check_output(['juju', 'change-user-password', 'admin', '-c', name],
                      input=bytes('{}\n{}\n'.format(token.password, token.password), 'utf-8'))
 
+        con_data = {}
         logger.info('Updating controller in database')
         with open(os.path.join(str(Path.home()), '.local', 'share', 'juju', 'controllers.yaml'), 'r') as data:
             con_data = yaml.load(data)
