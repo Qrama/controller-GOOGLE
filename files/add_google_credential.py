@@ -40,12 +40,12 @@ async def add_credential(username, credentials):
         credential_name = 't{}'.format(hashlib.md5(cred['name'].encode('utf')).hexdigest())
         controllers = ds.get_cloud_controllers(c_type)
         for con in controllers:
-            controller = juju.Controller_Connection(token, con)
-            if controller.c_type == c_type:
-                async with controller.connect(token) as con_juju:
-                    logger.info('%s -> Adding credentials', con)
-                    await juju.update_cloud(con_juju, cred['name'], username)
-                    logger.info('%s -> controller updated', con)
+            controller = Controller()
+            await controller.connect(con['api-endpoints'][0], token.username, token.password, con['ca-cert'])
+            logger.info('%s -> Adding credentials', con['name'])
+            await juju.update_cloud(controller, 'google', cred['name'], username)
+            logger.info('%s -> controller updated', con['name'])
+            await controller.disconnect()
         ds.set_credential_ready(username, cred['name'])
         logger.info('Succesfully added credential')
     except Exception as e:
