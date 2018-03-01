@@ -36,7 +36,6 @@ class JuJu_Token(object):  #pylint: disable=R0903
     def __init__(self):
         self.username = settings.JUJU_ADMIN_USER
         self.password = settings.JUJU_ADMIN_PASSWORD
-        self.is_admin = True
 
 
 async def bootstrap_google_controller(c_name, region, cred_name):#pylint: disable=E0001
@@ -45,8 +44,7 @@ async def bootstrap_google_controller(c_name, region, cred_name):#pylint: disabl
         token = JuJu_Token()
         valid_cred_name = 't{}'.format(hashlib.md5(cred_name.encode('utf')).hexdigest())
         credential = juju.get_credential(token.username, cred_name)
-        if not credential['state'] == 'ready':
-            raise Exception('The Credential {} is not ready yet.'.format(credential['name']))
+
         juju.get_controller_types()['google'].check_valid_credentials(credential)
 
         # Create credential file that can be used to bootstrap controller.

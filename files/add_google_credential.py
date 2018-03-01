@@ -23,6 +23,7 @@ import hashlib
 sys.path.append('/opt')
 from juju import tag
 from juju.client import client
+from juju.controller import Controller
 from sojobo_api import settings  #pylint: disable=C0413
 from sojobo_api.api import w_datastore as ds, w_juju as juju  #pylint: disable=C0413
 
@@ -30,7 +31,6 @@ class JuJu_Token(object):  #pylint: disable=R0903
     def __init__(self):
         self.username = settings.JUJU_ADMIN_USER
         self.password = settings.JUJU_ADMIN_PASSWORD
-        self.is_admin = False
 
 async def add_credential(username, credentials):
     try:
@@ -58,8 +58,8 @@ async def add_credential(username, credentials):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     ws_logger = logging.getLogger('websockets.protocol')
-    logger = logging.getLogger('add_credential')
-    hdlr = logging.FileHandler('{}/log/add_credential.log'.format(sys.argv[3]))
+    logger = logging.getLogger('add_google_credential')
+    hdlr = logging.FileHandler('{}/log/add_google_credential.log'.format(sys.argv[3]))
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
     hdlr.setFormatter(formatter)
     ws_logger.addHandler(hdlr)
