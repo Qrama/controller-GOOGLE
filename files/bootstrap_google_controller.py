@@ -97,11 +97,8 @@ async def bootstrap_google_controller(c_name, region, cred_name):#pylint: disabl
             if cred['name'] != cred_name:
                 await juju.update_cloud(controller, 'google', cred['name'], token.username)
         models = await controller.get_models()
-        print("======DEBUGGING=======")
-        print(models)
         for model in models.serialize()['user-models']:
             model = model.serialize()['model'].serialize()
-            print(model['name'])
             m_key = juju.construct_model_key(c_name, model['name'])
             datastore.create_model(m_key, model['name'], state='Model is being deployed', uuid='')
             datastore.add_model_to_controller(c_name, m_key)
