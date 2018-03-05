@@ -90,22 +90,16 @@ async def bootstrap_google_controller(c_name, region, cred_name):#pylint: disabl
             if cred['name'] != cred_name:
                 await juju.update_cloud(controller, 'google', cred['name'], username)
 
-        #controller_facade = client.ControllerFacade.from_connection(controller.connection())
-        #models = await controller_facade.AllModels()
-        # for model in models.user_models:
-        #     m_key = juju.construct_model_key(c_name, model.model.name)
-        #     datastore.create_model(m_key, model.model.name, state='Model is being deployed', uuid='')
-        #     datastore.add_model_to_controller(c_name, m_key)
-        #     datastore.set_model_state(m_key, 'ready', credential=cred_name, uuid=model.model.uuid)
-        #     datastore.set_model_access(m_key, username, 'admin')
-        models = await controller.model_uuids()
-        for model in models:
-            logger.info(model)
-            m_key = juju.construct_model_key(c_name, model)
-            datastore.create_model(m_key, model, state='Model is being deployed', uuid='')
-            datastore.add_model_to_controller(c_name, m_key)
-            datastore.set_model_state(m_key, 'ready', credential=cred_name, uuid=model[0])
-            datastore.set_model_access(m_key, username, 'admin')
+        controller_facade = client.ControllerFacade.from_connection(controller.connection())
+        models = await controller_facade.AllModels()
+        for model in models.user_models:
+            if model:
+                logger.info(model.model.name)
+                m_key = juju.construct_model_key(c_name, model.model.name)
+                datastore.create_model(m_key, model.model.name, state='Model is being deployed', uuid='')
+                datastore.add_model_to_controller(c_name, m_key)
+                datastore.set_model_state(m_key, 'ready', credential=cred_name, uuid=model.model.uuid)
+                datastore.set_model_access(m_key, username, 'admin')
         await controller.disconnect()
         logger.info('Controller succesfully created!')
     except Exception:  #pylint: disable=W0703
