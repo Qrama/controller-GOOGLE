@@ -100,7 +100,6 @@ async def bootstrap_google_controller(c_name, region, cred_name):#pylint: disabl
                 datastore.add_model_to_controller(c_name, m_key)
                 datastore.set_model_state(m_key, 'ready', credential=cred_name, uuid=model.model.uuid)
                 datastore.set_model_access(m_key, username, 'admin')
-        await controller.disconnect()
         logger.info('Controller succesfully created!')
     except Exception:  #pylint: disable=W0703
         exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -108,6 +107,8 @@ async def bootstrap_google_controller(c_name, region, cred_name):#pylint: disabl
         for l in lines:
             logger.error(l)
         datastore.set_controller_state(c_name, 'error')
+    finally:
+        await juju.disconnect(controller)
 
 
 if __name__ == '__main__':
