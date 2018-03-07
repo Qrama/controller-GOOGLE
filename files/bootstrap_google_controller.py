@@ -61,7 +61,8 @@ async def bootstrap_google_controller(c_name, region, cred_name):#pylint: disabl
         check_call(['juju', 'add-credential', 'google', '-f', path, '--replace'])
 
         logger.info('Bootstrapping controller...')
-        check_call(['juju', 'bootstrap', '--agent-version=2.3.0', 'google/{}'.format(region), c_name, '--credential', valid_cred_name])
+        check_call(['juju', 'bootstrap', '--agent-version=2.3.0', 'google/{}'.format(region),
+                    c_name, '--credential', valid_cred_name])
         os.remove(path)
 
         logger.info('Setting admin password...')
@@ -85,12 +86,13 @@ async def bootstrap_google_controller(c_name, region, cred_name):#pylint: disabl
         logger.info('Adding existing credentials and default models to database...')
         credentials = datastore.get_credentials(username)
         await controller.connect(endpoint=con_data['controllers'][c_name]['api-endpoints'][0],
-                                 username=username, password=password, cacert=con_data['controllers'][c_name]['ca-cert'])
+                                 username=username, password=password,
+                                 cacert=con_data['controllers'][c_name]['ca-cert'])
         for cred in credentials:
             if cred['name'] != cred_name:
                 await juju.update_cloud(controller, 'google', cred['name'], username)
 
-        controller_facade = client.ControllerFacade.from_connection(controller.connection())
+        controller_facade = client.ControllerFacade.from_connection(controller.connection)
         models = await controller_facade.AllModels()
         for model in models.user_models:
             if model:
@@ -101,7 +103,7 @@ async def bootstrap_google_controller(c_name, region, cred_name):#pylint: disabl
                 datastore.set_model_state(m_key, 'ready', credential=cred_name, uuid=model.model.uuid)
                 datastore.set_model_access(m_key, username, 'admin')
         logger.info('Controller succesfully created!')
-    except Exception:  #pylint: disable=W0703
+    except Exception:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
         for l in lines:
@@ -120,6 +122,5 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     loop = asyncio.get_event_loop()
     loop.set_debug(False)
-    loop.run_until_complete(bootstrap_google_controller(sys.argv[1], sys.argv[2],
-                                              sys.argv[3]))
+    loop.run_until_complete(bootstrap_google_controller(sys.argv[1], sys.argv[2], sys.argv[3]))
     loop.close()

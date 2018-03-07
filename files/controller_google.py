@@ -35,10 +35,6 @@ class Token(object):
         self.url = url
 
 def create_controller(name, data):
-    regions = get_supported_regions()
-    if not data['region'] in regions:
-        code, response = 400, 'Region not supported for cloud {}. Please choose one of the following: {}'.format(data['type'], regions)
-        abort(code, response)
     Popen(["python3", "{}/scripts/bootstrap_google_controller.py".format(settings.SOJOBO_API_DIR),
            name, data['region'], data['credential']])
     return 202, 'Environment {} is being created in region {}'.format(name, data['region'])
