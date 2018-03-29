@@ -1,8 +1,8 @@
 name: controller-google
 summary: Enables the use of google-clouds in the Sojobo-api
-maintainer: Mathijs Moerman <mathijs.moerman@qrama.io>
+maintainer: Sebastien Pattyn <sebastien.pattyn@tengu.io>
 description: |
-  This subordenate charm copies the necessairy files to enable the use of google-type clouds and restarts the api.
+  This subordinate charm copies the necessairy files to enable the use of google-type clouds and restarts the api.
 tags: ['misc']
 subordinate: true
 requires:

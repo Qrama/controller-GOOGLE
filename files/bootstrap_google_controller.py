@@ -110,7 +110,8 @@ async def bootstrap_google_controller(c_name, region, cred_name):#pylint: disabl
             logger.error(l)
         datastore.set_controller_state(c_name, 'error')
     finally:
-        await juju.disconnect(controller)
+        if 'controller' in locals():
+            await juju.disconnect(controller)
 
 
 if __name__ == '__main__':

@@ -46,6 +46,10 @@ def get_supported_regions():
     return ['us-east1', 'us-central1', 'us-west1', 'europe-west1', 'asia-east1', 'asia-northeast1', 'asia-southeast1']
 
 
+def get_cred_keys():
+    return CRED_KEYS
+
+
 def check_valid_credentials(credentials):
     wrong_keys = []
     if len(CRED_KEYS) == len(list(credentials.keys())):
