@@ -34,13 +34,16 @@ class Token(object):
         self.supportlxd = False
         self.url = url
 
-def create_controller(name, data):
+
+def create_controller(name, region, credential, username, password):
     Popen(["python3", "{}/scripts/bootstrap_google_controller.py".format(settings.SOJOBO_API_DIR),
-           name, data['region'], data['credential']])
-    return 202, 'Environment {} is being created in region {}'.format(name, data['region'])
+           name, region, credential, username, password])
+    return 202, 'Environment {} is being created in region {}'.format(name, region)
+
 
 def get_supported_series():
     return ['trusty', 'xenial', 'yakkety']
+
 
 def get_supported_regions():
     return ['us-east1', 'us-central1', 'us-west1', 'europe-west1', 'asia-east1', 'asia-northeast1', 'asia-southeast1']
@@ -54,11 +57,12 @@ def check_valid_credentials(credentials):
     wrong_keys = []
     if len(CRED_KEYS) == len(list(credentials.keys())):
         for cred in CRED_KEYS:
-            if not cred in list(credentials.keys()):
+            if cred not in list(credentials.keys()):
                 wrong_keys.append(cred)
-    if len(wrong_keys)>0:
+    if len(wrong_keys) > 0:
         error = errors.key_does_not_exist(wrong_keys)
         abort(error[0], error[1])
+
 
 def generate_cred_file(name, credentials):
     result = {
@@ -67,6 +71,7 @@ def generate_cred_file(name, credentials):
         'key': {'file': str(json.dumps(credentials))}
     }
     return result
+
 
 def add_credential(user, juju_username, credential):
     check_valid_credentials(credential['credential'])

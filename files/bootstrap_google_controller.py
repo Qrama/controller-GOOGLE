@@ -31,11 +31,11 @@ sys.path.append('/opt')
 from sojobo_api import settings  #pylint: disable=C0413
 from sojobo_api.api import w_datastore as datastore, w_juju as juju  #pylint: disable=C0413
 
-async def bootstrap_google_controller(c_name, region, cred_name):#pylint: disable=E0001
+async def bootstrap_google_controller(c_name, region, cred_name, username, password):#pylint: disable=E0001
     try:
         # Check if the credential is valid.
-        username = settings.JUJU_ADMIN_USER
-        password = settings.JUJU_ADMIN_PASSWORD
+        tengu_username = settings.JUJU_ADMIN_USER
+        tengu_password = settings.JUJU_ADMIN_PASSWORD
         valid_cred_name = 't{}'.format(hashlib.md5(cred_name.encode('utf')).hexdigest())
         credential = juju.get_credential(username, cred_name)
 
@@ -67,7 +67,7 @@ async def bootstrap_google_controller(c_name, region, cred_name):#pylint: disabl
 
         logger.info('Setting admin password...')
         check_output(['juju', 'change-user-password', 'admin', '-c', c_name],
-                     input=bytes('{}\n{}\n'.format(password, password), 'utf-8'))
+                     input=bytes('{}\n{}\n'.format(tengu_password, tengu_password), 'utf-8'))
 
         con_data = {}
         logger.info('Updating controller in database...')
@@ -86,22 +86,38 @@ async def bootstrap_google_controller(c_name, region, cred_name):#pylint: disabl
         logger.info('Adding existing credentials and default models to database...')
         credentials = datastore.get_credentials(username)
         await controller.connect(endpoint=con_data['controllers'][c_name]['api-endpoints'][0],
-                                 username=username, password=password,
+                                 username=tengu_username, password=tengu_password,
                                  cacert=con_data['controllers'][c_name]['ca-cert'])
         for cred in credentials:
             if cred['name'] != cred_name:
                 await juju.update_cloud(controller, 'google', cred['name'], username)
 
+        if username != tengu_username:
+            user_info = datastore.get_user_info(username)
+            juju_username = user_info["juju_username"]
+            ssh_keys = user_info["ssh_keys"]
+            user_facade = client.UserManagerFacade.from_connection(controller.connection)
+            users = [client.AddUser(display_name=juju_username,
+                                    username=juju_username,
+                                    password=password)]
+            await user_facade.AddUser(users)
+            user = tag.user(juju_username)
         controller_facade = client.ControllerFacade.from_connection(controller.connection)
         models = await controller_facade.AllModels()
         for model in models.user_models:
             if model:
-                logger.info(model.model.name)
                 m_key = juju.construct_model_key(c_name, model.model.name)
+                model_facade = client.ModelManagerFacade.from_connection(
+                                controller.connection)
+                model = tag.model(model.model.uuid)
+                changes = client.ModifyModelAccess('admin', 'grant', model, user)
+                await model_facade.ModifyModelAccess([changes])
+                logger.info(model.model.name)
                 datastore.create_model(m_key, model.model.name, state='Model is being deployed', uuid='')
                 datastore.add_model_to_controller(c_name, m_key)
                 datastore.set_model_state(m_key, 'ready', credential=cred_name, uuid=model.model.uuid)
                 datastore.set_model_access(m_key, username, 'admin')
+                juju.update_ssh_keys_model(username, ssh_keys, c_name, m_key)
         logger.info('Controller succesfully created!')
     except Exception:
         exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -123,5 +139,6 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     loop = asyncio.get_event_loop()
     loop.set_debug(False)
-    loop.run_until_complete(bootstrap_google_controller(sys.argv[1], sys.argv[2], sys.argv[3]))
+    loop.run_until_complete(bootstrap_google_controller(sys.argv[1], sys.argv[2], sys.argv[3],
+                                                        sys.argv[4], sys.argv[5]))
     loop.close()
