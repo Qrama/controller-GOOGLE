@@ -91,28 +91,29 @@ async def bootstrap_google_controller(c_name, region, cred_name, username, passw
         for cred in credentials:
             if cred['name'] != cred_name:
                 await juju.update_cloud(controller, 'google', cred['name'], username)
-
+        user_info = datastore.get_user(username)
+        juju_username = user_info["juju_username"]
+        user = tag.user(juju_username)
+        ssh_keys = user_info["ssh_keys"]
+        model_facade = client.ModelManagerFacade.from_connection(
+                        controller.connection)
         if username != tengu_username:
-            user_info = datastore.get_user_info(username)
-            juju_username = user_info["juju_username"]
-            ssh_keys = user_info["ssh_keys"]
             user_facade = client.UserManagerFacade.from_connection(controller.connection)
             users = [client.AddUser(display_name=juju_username,
                                     username=juju_username,
                                     password=password)]
             await user_facade.AddUser(users)
-            user = tag.user(juju_username)
+
         controller_facade = client.ControllerFacade.from_connection(controller.connection)
         models = await controller_facade.AllModels()
         for model in models.user_models:
             if model:
                 m_key = juju.construct_model_key(c_name, model.model.name)
-                model_facade = client.ModelManagerFacade.from_connection(
-                                controller.connection)
-                model = tag.model(model.model.uuid)
-                changes = client.ModifyModelAccess('admin', 'grant', model, user)
-                await model_facade.ModifyModelAccess([changes])
                 logger.info(model.model.name)
+                if username != tengu_username:
+                    model_tag = tag.model(model.model.uuid)
+                    changes = client.ModifyModelAccess('admin', 'grant', model_tag, user)
+                    await model_facade.ModifyModelAccess([changes])
                 datastore.create_model(m_key, model.model.name, state='Model is being deployed', uuid='')
                 datastore.add_model_to_controller(c_name, m_key)
                 datastore.set_model_state(m_key, 'ready', credential=cred_name, uuid=model.model.uuid)
