@@ -94,7 +94,6 @@ async def bootstrap_google_controller(c_name, region, cred_name, username, passw
         user_info = datastore.get_user(username)
         juju_username = user_info["juju_username"]
         user = tag.user(juju_username)
-        ssh_keys = user_info["ssh_keys"]
         model_facade = client.ModelManagerFacade.from_connection(
                         controller.connection)
         if username != tengu_username:
@@ -118,7 +117,9 @@ async def bootstrap_google_controller(c_name, region, cred_name, username, passw
                 datastore.add_model_to_controller(c_name, m_key)
                 datastore.set_model_state(m_key, 'ready', credential=cred_name, uuid=model.model.uuid)
                 datastore.set_model_access(m_key, username, 'admin')
-                juju.update_ssh_keys_model(username, ssh_keys, c_name, m_key)
+                ssh_keys = user_info["ssh_keys"]
+                if len(ssh_keys) > 0:
+                    juju.update_ssh_keys_model(username, ssh_keys, c_name, m_key)
         logger.info('Controller succesfully created!')
     except Exception:
         exc_type, exc_value, exc_traceback = sys.exc_info()
