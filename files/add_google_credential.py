@@ -41,7 +41,7 @@ async def add_credential(username, juju_username, credentials):
                                      settings.JUJU_ADMIN_PASSWORD,
                                      con['ca_cert'])
             logger.info('%s -> Adding credentials', con['name'])
-            await juju.update_cloud(controller, 'google', cred, juju_username)
+            await juju.update_cloud(controller, 'google', cred, juju_username, username)
             logger.info('%s -> Controller updated', con['name'])
             await controller.disconnect()
         ds.set_credential_ready(username, cred['name'])
@@ -51,6 +51,9 @@ async def add_credential(username, juju_username, credentials):
         lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
         for l in lines:
             logger.error(l)
+    finally:
+        if 'controller' in locals():
+            await juju.disconnect(controller)
 
 
 if __name__ == '__main__':

@@ -88,22 +88,26 @@ async def bootstrap_google_controller(c_name, region, cred_name, username, passw
         await controller.connect(endpoint=con_data['controllers'][c_name]['api-endpoints'][0],
                                  username=tengu_username, password=tengu_password,
                                  cacert=con_data['controllers'][c_name]['ca-cert'])
-        for cred in credentials:
-            if cred['name'] != cred_name:
-                await juju.update_cloud(controller, 'google', cred['name'], username)
         user_info = datastore.get_user(username)
         juju_username = user_info["juju_username"]
+        for cred in credentials:
+            if username != tengu_username:
+                await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
+            elif cred['name'] != cred_name :
+                await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
         user = tag.user(juju_username)
         model_facade = client.ModelManagerFacade.from_connection(
                         controller.connection)
+        controller_facade = client.ControllerFacade.from_connection(controller.connection)
         if username != tengu_username:
             user_facade = client.UserManagerFacade.from_connection(controller.connection)
             users = [client.AddUser(display_name=juju_username,
                                     username=juju_username,
                                     password=password)]
             await user_facade.AddUser(users)
+            changes = client.ModifyControllerAccess('superuser', 'grant', user)
+            await controller_facade.ModifyControllerAccess([changes])
 
-        controller_facade = client.ControllerFacade.from_connection(controller.connection)
         models = await controller_facade.AllModels()
         for model in models.user_models:
             if model:
