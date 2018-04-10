@@ -32,7 +32,10 @@ async def add_credential(username, juju_username, credentials):
     try:
         cred = ast.literal_eval(credentials)
         c_type = cred['type']
-        controllers = ds.get_cloud_controllers(c_type)
+        comp = ds.get_company_user(username)
+        if not comp:
+            comp = None
+        controllers = ds.get_cloud_controllers(c_type, company=comp)
         for con in controllers:
             logger.info('Connecting with controller: %s...', con['name'])
             controller = Controller()
@@ -41,7 +44,7 @@ async def add_credential(username, juju_username, credentials):
                                      settings.JUJU_ADMIN_PASSWORD,
                                      con['ca_cert'])
             logger.info('%s -> Adding credentials', con['name'])
-            await juju.update_cloud(controller, 'google', cred, juju_username, username)
+            await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
             logger.info('%s -> Controller updated', con['name'])
             await controller.disconnect()
         ds.set_credential_ready(username, cred['name'])
