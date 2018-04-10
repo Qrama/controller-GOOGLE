@@ -88,9 +88,11 @@ async def bootstrap_google_controller(c_name, region, cred_name):#pylint: disabl
         await controller.connect(endpoint=con_data['controllers'][c_name]['api-endpoints'][0],
                                  username=username, password=password,
                                  cacert=con_data['controllers'][c_name]['ca-cert'])
+        user_info = datastore.get_user(username)
+        juju_username = user_info["juju_username"]
         for cred in credentials:
             if cred['name'] != cred_name:
-                await juju.update_cloud(controller, 'google', cred['name'], username)
+                await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
 
         controller_facade = client.ControllerFacade.from_connection(controller.connection)
         models = await controller_facade.AllModels()
