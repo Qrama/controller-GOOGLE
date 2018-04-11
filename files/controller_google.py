@@ -73,10 +73,17 @@ def generate_cred_file(name, credentials):
     return result
 
 
-def generate_update_cred_file(path):
-    result = {'file': path}
+def generate_update_cred_file(filepath):
+    file = open(filepath)
+    result = {'file': file.read()}
     return result
 
+# def generate_update_cred_file(credential):
+#     result = {"project_id": credential['project_id'],
+#               "private_key": credential['private_key'],
+#               "client_email": credential['client_email'],
+#               "client_id": credential['client_id']}
+#     return result
 
 def add_credential(user, juju_username, juju_password, credential):
     check_valid_credentials(credential['credential'])
