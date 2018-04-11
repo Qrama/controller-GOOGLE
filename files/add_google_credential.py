@@ -28,20 +28,21 @@ from sojobo_api import settings  #pylint: disable=C0413
 from sojobo_api.api import w_datastore as ds, w_juju as juju  #pylint: disable=C0413
 
 
-async def add_credential(username, juju_username, credentials):
+async def add_credential(username, juju_username, juju_password, credentials):
     try:
         cred = ast.literal_eval(credentials)
         c_type = cred['type']
         comp = ds.get_company_user(username)
         if not comp:
             comp = None
+        logger.info('company = %s', comp)
         controllers = ds.get_cloud_controllers(c_type, company=comp)
         for con in controllers:
             logger.info('Connecting with controller: %s...', con['name'])
             controller = Controller()
             await controller.connect(con['endpoints'][0],
-                                     settings.JUJU_ADMIN_USER,
-                                     settings.JUJU_ADMIN_PASSWORD,
+                                     juju_username,
+                                     juju_password,
                                      con['ca_cert'])
             logger.info('%s -> Adding credentials', con['name'])
             await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
@@ -72,5 +73,5 @@ if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
-    loop.run_until_complete(add_credential(sys.argv[1], sys.argv[2], sys.argv[3]))
+    loop.run_until_complete(add_credential(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]))
     loop.close()

@@ -31,6 +31,7 @@ sys.path.append('/opt')
 from sojobo_api import settings  #pylint: disable=C0413
 from sojobo_api.api import w_datastore as datastore, w_juju as juju  #pylint: disable=C0413
 
+
 async def bootstrap_google_controller(c_name, region, cred_name, username, password):#pylint: disable=E0001
     try:
         # Check if the credential is valid.
@@ -93,6 +94,7 @@ async def bootstrap_google_controller(c_name, region, cred_name, username, passw
         for cred in credentials:
             if username != tengu_username:
                 await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
+                logger.info('Added credential %s to controller %s', cred['name'], c_name)
             elif cred['name'] != cred_name :
                 await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
         user = tag.user(juju_username)
@@ -137,14 +139,18 @@ async def bootstrap_google_controller(c_name, region, cred_name, username, passw
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger('bootstrap_google_controller')
+    ws_logger = logging.getLogger('websockets.protocol')
     hdlr = logging.FileHandler('{}/log/bootstrap_google_controller.log'.format(settings.SOJOBO_API_DIR))
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
     hdlr.setFormatter(formatter)
     logger.addHandler(hdlr)
-    logger.setLevel(logging.INFO)
+    ws_logger.addHandler(hdlr)
+    ws_logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
     loop = asyncio.get_event_loop()
-    loop.set_debug(False)
+    loop.set_debug(True)
     loop.run_until_complete(bootstrap_google_controller(sys.argv[1], sys.argv[2], sys.argv[3],
                                                         sys.argv[4], sys.argv[5]))
     loop.close()
