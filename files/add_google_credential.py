@@ -34,10 +34,13 @@ async def add_credential(username, juju_username, juju_password, credentials):
         c_type = cred['type']
         comp = ds.get_company_user(username)
         if not comp:
-            comp = None
+            company = None
+        else:
+            company = comp['company']
         logger.info('company = %s', comp)
-        controllers = ds.get_cloud_controllers(c_type, company=comp['name'])
+        controllers = ds.get_cloud_controllers(c_type, company=company)
         for con in controllers:
+            logger.info(con)
             logger.info('Connecting with controller: %s...', con['name'])
             controller = Controller()
             await controller.connect(con['endpoints'][0],
