@@ -31,6 +31,7 @@ sys.path.append('/opt')
 from sojobo_api import settings  #pylint: disable=C0413
 from sojobo_api.api import w_datastore as datastore, w_juju as juju  #pylint: disable=C0413
 
+
 async def bootstrap_google_controller(c_name, region, cred_name, username, password):#pylint: disable=E0001
     try:
         # Check if the credential is valid.
@@ -88,23 +89,27 @@ async def bootstrap_google_controller(c_name, region, cred_name, username, passw
         await controller.connect(endpoint=con_data['controllers'][c_name]['api-endpoints'][0],
                                  username=tengu_username, password=tengu_password,
                                  cacert=con_data['controllers'][c_name]['ca-cert'])
-        for cred in credentials:
-            if cred['name'] != cred_name:
-                await juju.update_cloud(controller, 'google', cred['name'], username)
         user_info = datastore.get_user(username)
         juju_username = user_info["juju_username"]
+        for cred in credentials:
+            if username != tengu_username:
+                await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
+                logger.info('Added credential %s to controller %s', cred['name'], c_name)
+            elif cred['name'] != cred_name :
+                await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
         user = tag.user(juju_username)
-        ssh_keys = user_info["ssh_keys"]
         model_facade = client.ModelManagerFacade.from_connection(
                         controller.connection)
+        controller_facade = client.ControllerFacade.from_connection(controller.connection)
         if username != tengu_username:
             user_facade = client.UserManagerFacade.from_connection(controller.connection)
             users = [client.AddUser(display_name=juju_username,
                                     username=juju_username,
                                     password=password)]
             await user_facade.AddUser(users)
+            changes = client.ModifyControllerAccess('superuser', 'grant', user)
+            await controller_facade.ModifyControllerAccess([changes])
 
-        controller_facade = client.ControllerFacade.from_connection(controller.connection)
         models = await controller_facade.AllModels()
         for model in models.user_models:
             if model:
@@ -118,7 +123,9 @@ async def bootstrap_google_controller(c_name, region, cred_name, username, passw
                 datastore.add_model_to_controller(c_name, m_key)
                 datastore.set_model_state(m_key, 'ready', credential=cred_name, uuid=model.model.uuid)
                 datastore.set_model_access(m_key, username, 'admin')
-                juju.update_ssh_keys_model(username, ssh_keys, c_name, m_key)
+                ssh_keys = user_info["ssh_keys"]
+                if len(ssh_keys) > 0:
+                    juju.update_ssh_keys_model(username, ssh_keys, c_name, m_key)
         logger.info('Controller succesfully created!')
     except Exception:
         exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -132,14 +139,18 @@ async def bootstrap_google_controller(c_name, region, cred_name, username, passw
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger('bootstrap_google_controller')
+    ws_logger = logging.getLogger('websockets.protocol')
     hdlr = logging.FileHandler('{}/log/bootstrap_google_controller.log'.format(settings.SOJOBO_API_DIR))
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
     hdlr.setFormatter(formatter)
     logger.addHandler(hdlr)
-    logger.setLevel(logging.INFO)
+    ws_logger.addHandler(hdlr)
+    ws_logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
     loop = asyncio.get_event_loop()
-    loop.set_debug(False)
+    loop.set_debug(True)
     loop.run_until_complete(bootstrap_google_controller(sys.argv[1], sys.argv[2], sys.argv[3],
                                                         sys.argv[4], sys.argv[5]))
     loop.close()
