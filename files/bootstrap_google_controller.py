@@ -85,18 +85,19 @@ async def bootstrap_google_controller(c_name, region, cred_name, username, passw
         controller = Controller()
 
         logger.info('Adding existing credentials and default models to database...')
-        credentials = datastore.get_credentials(username)
+        credentials = datastore.get_cloud_credentials('google', username)
         await controller.connect(endpoint=con_data['controllers'][c_name]['api-endpoints'][0],
                                  username=tengu_username, password=tengu_password,
                                  cacert=con_data['controllers'][c_name]['ca-cert'])
         user_info = datastore.get_user(username)
         juju_username = user_info["juju_username"]
         for cred in credentials:
-            if username != tengu_username:
-                await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
-                logger.info('Added credential %s to controller %s', cred['name'], c_name)
-            elif cred['name'] != cred_name :
-                await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
+            if cred['type'] == 'google':
+                if username != tengu_username:
+                    await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
+                    logger.info('Added credential %s to controller %s', cred['name'], c_name)
+                elif cred['name'] != cred_name :
+                    await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
         user = tag.user(juju_username)
         model_facade = client.ModelManagerFacade.from_connection(
                         controller.connection)

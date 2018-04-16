@@ -28,13 +28,6 @@ CRED_KEYS = ['type', 'project_id', 'private_key_id', 'private_key', 'client_emai
              'client_x509_cert_url']
 
 
-class Token(object):
-    def __init__(self, url):
-        self.type = 'google'
-        self.supportlxd = False
-        self.url = url
-
-
 def create_controller(name, region, credential, username, password):
     Popen(["python3", "{}/scripts/bootstrap_google_controller.py".format(settings.SOJOBO_API_DIR),
            name, region, credential, username, password])
@@ -78,12 +71,6 @@ def generate_update_cred_file(filepath):
     result = {'file': file.read()}
     return result
 
-# def generate_update_cred_file(credential):
-#     result = {"project_id": credential['project_id'],
-#               "private_key": credential['private_key'],
-#               "client_email": credential['client_email'],
-#               "client_id": credential['client_id']}
-#     return result
 
 def add_credential(user, juju_username, juju_password, credential):
     check_valid_credentials(credential['credential'])
