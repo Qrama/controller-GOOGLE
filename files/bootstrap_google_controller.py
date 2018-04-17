@@ -38,8 +38,9 @@ async def bootstrap_google_controller(c_name, region, cred_name, username, passw
         tengu_username = settings.JUJU_ADMIN_USER
         tengu_password = settings.JUJU_ADMIN_PASSWORD
         valid_cred_name = 't{}'.format(hashlib.md5(cred_name.encode('utf')).hexdigest())
+        logger.info(valid_cred_name)
         credential = juju.get_credential(username, cred_name)
-
+        logger.info(credential)
         juju.get_controller_types()['google'].check_valid_credentials(credential)
 
         # Create credential file that can be used to bootstrap controller.
