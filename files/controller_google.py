@@ -28,33 +28,34 @@ CRED_KEYS = ['type', 'project_id', 'private_key_id', 'private_key', 'client_emai
              'client_x509_cert_url']
 
 
-class Token(object):
-    def __init__(self, url):
-        self.type = 'google'
-        self.supportlxd = False
-        self.url = url
-
-def create_controller(name, data):
+def create_controller(name, region, credential, username, password):
     Popen(["python3", "{}/scripts/bootstrap_google_controller.py".format(settings.SOJOBO_API_DIR),
-           name, data['region'], data['credential']])
-    return 202, 'Environment {} is being created in region {}'.format(name, data['region'])
+           name, region, credential, username, password])
+
+
 
 def get_supported_series():
     return ['trusty', 'xenial', 'yakkety']
 
+
 def get_supported_regions():
     return ['us-east1', 'us-central1', 'us-west1', 'europe-west1', 'asia-east1', 'asia-northeast1', 'asia-southeast1']
+
+
+def get_cred_keys():
+    return CRED_KEYS
 
 
 def check_valid_credentials(credentials):
     wrong_keys = []
     if len(CRED_KEYS) == len(list(credentials.keys())):
         for cred in CRED_KEYS:
-            if not cred in list(credentials.keys()):
+            if cred not in list(credentials.keys()):
                 wrong_keys.append(cred)
-    if len(wrong_keys)>0:
+    if len(wrong_keys) > 0:
         error = errors.key_does_not_exist(wrong_keys)
         abort(error[0], error[1])
+
 
 def generate_cred_file(name, credentials):
     result = {
@@ -64,9 +65,16 @@ def generate_cred_file(name, credentials):
     }
     return result
 
-def add_credential(user, data):
-    check_valid_credentials(data['credential'])
-    datastore.add_credential(user, data)
+
+def generate_update_cred_file(filepath):
+    file = open(filepath)
+    result = {'file': file.read()}
+    return result
+
+
+def add_credential(user, juju_username, juju_password, credential):
+    check_valid_credentials(credential['credential'])
+    datastore.add_credential(user, credential)
     Popen(["python3", "{}/scripts/add_google_credential.py".format(settings.SOJOBO_API_DIR),
-           user, str(data), settings.SOJOBO_API_DIR])
+           user, juju_username, juju_password, str(credential)])
     return 202, 'Credentials are being added for user {}'.format(user)

@@ -25,27 +25,25 @@ import sys
 import yaml
 import json
 from juju import tag
+from juju.controller import Controller
 from juju.client import client
 sys.path.append('/opt')
 from sojobo_api import settings  #pylint: disable=C0413
 from sojobo_api.api import w_datastore as datastore, w_juju as juju  #pylint: disable=C0413
 
 
-class JuJu_Token(object):  #pylint: disable=R0903
-    def __init__(self):
-        self.username = settings.JUJU_ADMIN_USER
-        self.password = settings.JUJU_ADMIN_PASSWORD
-        self.is_admin = True
-
-
-async def bootstrap_google_controller(name, region, cred_name):#pylint: disable=E0001
+async def bootstrap_google_controller(c_name, region, cred_name, username, password):#pylint: disable=E0001
     try:
-        token = JuJu_Token()
+        # Check if the credential is valid.
+        tengu_username = settings.JUJU_ADMIN_USER
+        tengu_password = settings.JUJU_ADMIN_PASSWORD
         valid_cred_name = 't{}'.format(hashlib.md5(cred_name.encode('utf')).hexdigest())
-        credential = juju.get_credential(token.username, cred_name)
-        if not credential['state'] == 'ready':
-            raise Exception('The Credential {} is not ready yet.'.format(credential['name']))
+        logger.info(valid_cred_name)
+        credential = juju.get_credential(username, cred_name)
+        logger.info(credential)
         juju.get_controller_types()['google'].check_valid_credentials(credential)
+
+        # Create credential file that can be used to bootstrap controller.
         cred_path = '/home/{}/credentials'.format(settings.SOJOBO_USER)
         if not os.path.exists(cred_path):
             os.mkdir(cred_path)
@@ -53,66 +51,109 @@ async def bootstrap_google_controller(name, region, cred_name):#pylint: disable=
         with open(filepath, 'w+') as credfile:
             json.dump(credential['credential'], credfile)
         path = '/tmp/credentials.yaml'
-        data = {'credentials': {'google': {valid_cred_name: {'auth-type': 'jsonfile',
-                                                  'file': filepath}}}}
+        data = {'credentials':
+                    {'google':
+                        {valid_cred_name:
+                            {'auth-type': 'jsonfile',
+                             'file': filepath}}}}
         with open(path, 'w') as dest:
             yaml.dump(data, dest, default_flow_style=True)
-        logger.info(valid_cred_name)
-        logger.info(data)
+
+        logger.info('Adding the credential...')
         check_call(['juju', 'add-credential', 'google', '-f', path, '--replace'])
-        logger.info(path)
-        check_call(['juju', 'bootstrap', '--agent-version=2.3.0', 'google/{}'.format(region), name, '--credential', valid_cred_name])
+
+        logger.info('Bootstrapping controller...')
+        check_call(['juju', 'bootstrap', '--agent-version=2.3.0', 'google/{}'.format(region),
+                    c_name, '--credential', valid_cred_name])
         os.remove(path)
 
-        logger.info('Setting admin password')
-        check_output(['juju', 'change-user-password', 'admin', '-c', name],
-                     input=bytes('{}\n{}\n'.format(token.password, token.password), 'utf-8'))
+        logger.info('Setting admin password...')
+        check_output(['juju', 'change-user-password', 'admin', '-c', c_name],
+                     input=bytes('{}\n{}\n'.format(tengu_password, tengu_password), 'utf-8'))
 
-        logger.info('Updating controller in database')
+        con_data = {}
+        logger.info('Updating controller in database...')
         with open(os.path.join(str(Path.home()), '.local', 'share', 'juju', 'controllers.yaml'), 'r') as data:
             con_data = yaml.load(data)
         datastore.set_controller_state(
-            name,
+            c_name,
             'ready',
-            con_data['controllers'][name]['api-endpoints'],
-            con_data['controllers'][name]['uuid'],
-            con_data['controllers'][name]['ca-cert'])
+            endpoints=con_data['controllers'][c_name]['api-endpoints'],
+            uuid=con_data['controllers'][c_name]['uuid'],
+            ca_cert=con_data['controllers'][c_name]['ca-cert'])
 
-        logger.info('Connecting to controller')
-        controller = juju.Controller_Connection(token, name)
+        logger.info('Connecting to controller...')
+        controller = Controller()
 
-        logger.info('Adding existing credentials and default models to database')
-        credentials = datastore.get_credentials(token.username)
-        async with controller.connect(token) as juju_con:
-            for cred in credentials:
-                if cred['name'] != cred_name:
-                    await juju.update_cloud(juju_con, cred['name'], token.username)
-            models = await juju_con.get_models()
-            for model in models.serialize()['user-models']:
-                model = model.serialize()['model'].serialize()
-                # TODO: Checken of model al bestaat?
-                new_model = datastore.create_model(model['name'], state='Model is being deployed', uuid='')
-                datastore.add_model_to_controller(name, new_model["_key"])
-                datastore.set_model_state(new_model["_key"], 'ready', credential=cred_name, uuid=model['uuid'])
-                datastore.set_model_access(new_model["_key"], token.username, 'admin')
+        logger.info('Adding existing credentials and default models to database...')
+        credentials = datastore.get_cloud_credentials('google', username)
+        await controller.connect(endpoint=con_data['controllers'][c_name]['api-endpoints'][0],
+                                 username=tengu_username, password=tengu_password,
+                                 cacert=con_data['controllers'][c_name]['ca-cert'])
+        user_info = datastore.get_user(username)
+        juju_username = user_info["juju_username"]
+        for cred in credentials:
+            if cred['type'] == 'google':
+                if username != tengu_username:
+                    await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
+                    logger.info('Added credential %s to controller %s', cred['name'], c_name)
+                elif cred['name'] != cred_name :
+                    await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
+        user = tag.user(juju_username)
+        model_facade = client.ModelManagerFacade.from_connection(
+                        controller.connection)
+        controller_facade = client.ControllerFacade.from_connection(controller.connection)
+        if username != tengu_username:
+            user_facade = client.UserManagerFacade.from_connection(controller.connection)
+            users = [client.AddUser(display_name=juju_username,
+                                    username=juju_username,
+                                    password=password)]
+            await user_facade.AddUser(users)
+            changes = client.ModifyControllerAccess('superuser', 'grant', user)
+            await controller_facade.ModifyControllerAccess([changes])
+
+        c_info = datastore.get_controller(c_name)
+        models = await controller_facade.AllModels()
+        for model in models.user_models:
+            if model:
+                m_key = juju.construct_model_key(c_info['name'], model.model.name)
+                logger.info(model.model.name)
+                if username != tengu_username:
+                    model_tag = tag.model(model.model.uuid)
+                    changes = client.ModifyModelAccess('admin', 'grant', model_tag, user)
+                    await model_facade.ModifyModelAccess([changes])
+                datastore.create_model(m_key, model.model.name, state='Model is being deployed', uuid='')
+                datastore.add_model_to_controller(c_name, m_key)
+                datastore.set_model_state(m_key, 'ready', credential=cred_name, uuid=model.model.uuid)
+                datastore.set_model_access(m_key, username, 'admin')
+                ssh_keys = user_info["ssh_keys"]
+                if len(ssh_keys) > 0:
+                    juju.update_ssh_keys_model(username, ssh_keys, c_name, m_key)
         logger.info('Controller succesfully created!')
-    except Exception:  #pylint: disable=W0703
+    except Exception:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
         for l in lines:
             logger.error(l)
-        datastore.set_controller_state(name, 'error')
+        datastore.set_controller_state(c_name, 'error')
+    finally:
+        if 'controller' in locals():
+            await juju.disconnect(controller)
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger('bootstrap_google_controller')
+    ws_logger = logging.getLogger('websockets.protocol')
     hdlr = logging.FileHandler('{}/log/bootstrap_google_controller.log'.format(settings.SOJOBO_API_DIR))
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
     hdlr.setFormatter(formatter)
     logger.addHandler(hdlr)
-    logger.setLevel(logging.INFO)
+    ws_logger.addHandler(hdlr)
+    ws_logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
     loop = asyncio.get_event_loop()
-    loop.set_debug(False)
-    loop.run_until_complete(bootstrap_google_controller(sys.argv[1], sys.argv[2],
-                                              sys.argv[3]))
+    loop.set_debug(True)
+    loop.run_until_complete(bootstrap_google_controller(sys.argv[1], sys.argv[2], sys.argv[3],
+                                                        sys.argv[4], sys.argv[5]))
     loop.close()

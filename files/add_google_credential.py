@@ -23,29 +23,34 @@ import hashlib
 sys.path.append('/opt')
 from juju import tag
 from juju.client import client
+from juju.controller import Controller
 from sojobo_api import settings  #pylint: disable=C0413
 from sojobo_api.api import w_datastore as ds, w_juju as juju  #pylint: disable=C0413
 
-class JuJu_Token(object):  #pylint: disable=R0903
-    def __init__(self):
-        self.username = settings.JUJU_ADMIN_USER
-        self.password = settings.JUJU_ADMIN_PASSWORD
-        self.is_admin = False
 
-async def add_credential(username, credentials):
+async def add_credential(username, juju_username, juju_password, credentials):
     try:
         cred = ast.literal_eval(credentials)
-        token = JuJu_Token()
         c_type = cred['type']
-        credential_name = 't{}'.format(hashlib.md5(cred['name'].encode('utf')).hexdigest())
-        controllers = ds.get_cloud_controllers(c_type)
+        comp = ds.get_company_user(username)
+        if not comp:
+            company = None
+        else:
+            company = comp['company']
+        logger.info('company = %s', comp)
+        controllers = ds.get_cloud_controllers(c_type, company=company)
         for con in controllers:
-            controller = juju.Controller_Connection(token, con)
-            if controller.c_type == c_type:
-                async with controller.connect(token) as con_juju:
-                    logger.info('%s -> Adding credentials', con)
-                    await juju.update_cloud(con_juju, cred['name'], username)
-                    logger.info('%s -> controller updated', con)
+            logger.info(con)
+            logger.info('Connecting with controller: %s...', con['name'])
+            controller = Controller()
+            await controller.connect(con['endpoints'][0],
+                                     juju_username,
+                                     juju_password,
+                                     con['ca_cert'])
+            logger.info('%s -> Adding credentials', con['name'])
+            await juju.update_cloud(controller, 'google', cred['name'], juju_username, username)
+            logger.info('%s -> Controller updated', con['name'])
+            await controller.disconnect()
         ds.set_credential_ready(username, cred['name'])
         logger.info('Succesfully added credential')
     except Exception as e:
@@ -53,13 +58,16 @@ async def add_credential(username, credentials):
         lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
         for l in lines:
             logger.error(l)
+    finally:
+        if 'controller' in locals():
+            await juju.disconnect(controller)
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     ws_logger = logging.getLogger('websockets.protocol')
-    logger = logging.getLogger('add_credential')
-    hdlr = logging.FileHandler('{}/log/add_credential.log'.format(sys.argv[3]))
+    logger = logging.getLogger('add_google_credential')
+    hdlr = logging.FileHandler('{}/log/add_google_credential.log'.format(settings.SOJOBO_API_DIR))
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
     hdlr.setFormatter(formatter)
     ws_logger.addHandler(hdlr)
@@ -68,5 +76,5 @@ if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
-    loop.run_until_complete(add_credential(sys.argv[1], sys.argv[2]))
+    loop.run_until_complete(add_credential(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]))
     loop.close()
