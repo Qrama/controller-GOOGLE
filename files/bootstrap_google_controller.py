@@ -29,7 +29,8 @@ from juju.controller import Controller
 from juju.client import client
 sys.path.append('/opt')
 from sojobo_api import settings  #pylint: disable=C0413
-from sojobo_api.api import w_datastore as datastore, w_juju as juju  #pylint: disable=C0413
+from sojobo_api.api import w_juju as juju  #pylint: disable=C0413
+from sojobo_api.api.storage import w_datastore as datastore
 
 
 async def bootstrap_google_controller(c_name, region, cred_name, username, password):#pylint: disable=E0001

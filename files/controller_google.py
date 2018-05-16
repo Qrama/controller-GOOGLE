@@ -17,7 +17,9 @@
 import os
 from subprocess import check_output, check_call, Popen
 from sojobo_api import settings
-from sojobo_api.api import w_errors as errors, w_datastore as datastore, w_juju as juju
+from sojobo_api.api import w_juju as juju
+from sojobo_api.api.core import w_errors as errors
+from sojobo_api.api.storage import w_datastore as datastore
 from flask import abort
 import yaml
 import json
